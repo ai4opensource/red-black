@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red-Black Tree: Bottom-Up vs Top-Down Insertion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .method-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+
+        .toggle-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .toggle-option label {
+            font-size: 1.1em;
+            cursor: pointer;
+            padding: 8px 15px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+
+        .toggle-option input[type="radio"]:checked + label {
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+        }
+
+        .content {
+            display: flex;
+            min-height: 700px;
+        }
+
+        .sidebar {
+            width: 380px;
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+            max-height: 900px;
+        }
+
+        .main {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .controls {
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button-group button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .tree-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tree-title {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+            color: #495057;
+            border: 2px solid #dee2e6;
+            border-bottom: none;
+        }
+
+        .canvas-container {
+            flex: 1;
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 0 0 8px 8px;
+            position: relative;
+            min-height: 400px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+        }
+
+        .info-section h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .method-info {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .method-info h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .method-info p {
+            color: #856404;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .rule-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .rule-card h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .rule-card p {
+            color: #6c757d;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .operation-log {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            animation: slideIn 0.3s ease;
+        }
+
+        .log-entry.insertion {
+            background: #d4edda;
+            color: #155724;
+            border-left: 3px solid #28a745;
+        }
+
+        .log-entry.rotation {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 3px solid #ffc107;
+        }
+
+        .log-entry.recolor {
+            background: #cce5ff;
+            color: #004085;
+            border-left: 3px solid #007bff;
+        }
+
+        .log-entry.check {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 3px solid #dc3545;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .speed-control {
+            margin-top: 20px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .speed-label {
+            display: flex;
+            justify-content: space-between;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .comparison-mode {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #0c5460;
+            font-weight: bold;
+        }
+
+        @media (max-width: 968px) {
+            .canvas-wrapper {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #dee2e6;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌳 Red-Black Tree: Bottom-Up vs Top-Down</h1>
+            <p>Compare insertion methods with side-by-side visualization</p>
+            
+            <div class="method-toggle">
+                <div class="toggle-option">
+                    <input type="radio" id="bottom-up" name="method" value="bottom-up" checked>
+                    <label for="bottom-up">Bottom-Up Insertion</label>
+                </div>
+                <div class="toggle-option">
+                    <input type="radio" id="top-down" name="method" value="top-down">
+                    <label for="top-down">Top-Down Insertion</label>
+                </div>
+                <div class="toggle-option">
+                    <input type="radio" id="comparison" name="method" value="comparison">
+                    <label for="comparison">Side-by-Side Comparison</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="sidebar">
+                <div class="method-info" id="method-info">
+                    <h4>Bottom-Up Insertion (Standard)</h4>
+                    <p>Inserts the node first, then fixes violations by working up the tree. More rotations but simpler logic.</p>
+                </div>
+
+                <div class="info-section">
+                    <h3>📊 Tree Statistics</h3>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="node-count">0</div>
+                            <div class="stat-label">Nodes</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="tree-height">0</div>
+                            <div class="stat-label">Height</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="rotations">0</div>
+                            <div class="stat-label">Total Rotations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="recolors">0</div>
+                            <div class="stat-label">Total Recolors</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>📜 Red-Black Tree Rules</h3>
+                    <div class="rule-card">
+                        <h4>Rule 1: Node Colors</h4>
+                        <p>Every node is either red or black.</p>
+                    </div>
+                    <div class="rule-card">
+                        <h4>Rule 2: Root Property</h4>
+                        <p>The root is always black.</p>
+                    </div>
+                    <div class="rule-card">
+                        <h4>Rule 3: Red Property</h4>
+                        <p>No two red nodes can be adjacent (parent-child).</p>
+                    </div>
+                    <div class="rule-card">
+                        <h4>Rule 4: Black Height</h4>
+                        <p>All paths from root to leaves have the same number of black nodes.</p>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>📝 Operation Log</h3>
+                    <div class="operation-log" id="operation-log">
+                        <div class="log-entry insertion">Welcome! Insert values to see the difference between methods.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main">
+                <div class="controls">
+                    <div class="control-group">
+                        <label>Insert Node:</label>
+                        <div class="input-row">
+                            <input type="number" id="insert-value" placeholder="Enter value (1-99)" min="1" max="99">
+                            <button id="insert-btn">Insert</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Quick Actions:</label>
+                        <div class="button-group">
+                            <button id="sequence-btn">Insert 1-7 Sequence</button>
+                            <button id="random-btn">Random Insert</button>
+                            <button id="clear-btn">Clear Trees</button>
+                            <button id="example-btn">Load Example</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group speed-control">
+                        <label>Animation Speed:</label>
+                        <input type="range" id="speed-slider" min="1" max="10" value="5">
+                        <div class="speed-label">
+                            <span>Slow</span>
+                            <span>Fast</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-mode" id="comparison-indicator" style="display: none;">
+                    Comparison Mode: Same values inserted into both trees
+                </div>
+
+                <div class="canvas-wrapper" id="canvas-wrapper">
+                    <div class="tree-container" id="tree1-container">
+                        <div class="tree-title" id="tree1-title">Bottom-Up Insertion</div>
+                        <div class="canvas-container">
+                            <canvas id="tree1-canvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="tree-container" id="tree2-container" style="display: none;">
+                        <div class="tree-title">Top-Down Insertion</div>
+                        <div class="canvas-container">
+                            <canvas id="tree2-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Node {
+            constructor(value) {
+                this.value = value;
+                this.left = null;
+                this.right = null;
+                this.parent = null;
+                this.color = 'red';
+                this.x = 0;
+                this.y = 0;
+                this.targetX = 0;
+                this.targetY = 0;
+            }
+        }
+
+        // Bottom-Up Red-Black Tree (Standard Implementation)
+        class BottomUpRBTree {
+            constructor() {
+                this.root = null;
+                this.animationSpeed = 5;
+                this.nodeCount = 0;
+                this.operationLog = [];
+                this.totalRotations = 0;
+                this.totalRecolors = 0;
+            }
+
+            insert(value) {
+                const newNode = new Node(value);
+                this.nodeCount++;
+                
+                if (!this.root) {
+                    this.root = newNode;
+                    this.root.color = 'black';
+                    this.addLog(`[BU] Inserted ${value} as root (black)`, 'insertion');
+                    return;
+                }
+
+                // Standard BST insertion
+                let current = this.root;
+                let parent = null;
+
+                while (current) {
+                    parent = current;
+                    if (value < current.value) {
+                        current = current.left;
+                    } else {
+                        current = current.right;
+                    }
+                }
+
+                newNode.parent = parent;
+                if (value < parent.value) {
+                    parent.left = newNode;
+                } else {
+                    parent.right = newNode;
+                }
+
+                this.addLog(`[BU] Inserted ${value} (red) at leaf`, 'insertion');
+                this.fixViolations(newNode);
+            }
+
+            fixViolations(node) {
+                while (node.parent && node.parent.color === 'red') {
+                    const parent = node.parent;
+                    const grandparent = parent.parent;
+
+                    if (parent === grandparent.left) {
+                        const uncle = grandparent.right;
+                        
+                        if (uncle && uncle.color === 'red') {
+                            // Case 1: Uncle is red - recolor
+                            parent.color = 'black';
+                            uncle.color = 'black';
+                            grandparent.color = 'red';
+                            this.totalRecolors += 3;
+                            this.addLog(`[BU] Recolored parent, uncle (black), grandparent (red)`, 'recolor');
+                            node = grandparent;
+                        } else {
+                            // Case 2 & 3: Uncle is black
+                            if (node === parent.right) {
+                                // Case 2: Right child - rotate left
+                                node = parent;
+                                this.rotateLeft(node);
+                            }
+                            // Case 3: Left child - rotate right
+                            parent.color = 'black';
+                            grandparent.color = 'red';
+                            this.totalRecolors += 2;
+                            this.rotateRight(grandparent);
+                        }
+                    } else {
+                        // Mirror cases
+                        const uncle = grandparent.left;
+                        
+                        if (uncle && uncle.color === 'red') {
+                            parent.color = 'black';
+                            uncle.color = 'black';
+                            grandparent.color = 'red';
+                            this.totalRecolors += 3;
+                            this.addLog(`[BU] Recolored parent, uncle (black), grandparent (red)`, 'recolor');
+                            node = grandparent;
+                        } else {
+                            if (node === parent.left) {
+                                node = parent;
+                                this.rotateRight(node);
+                            }
+                            parent.color = 'black';
+                            grandparent.color = 'red';
+                            this.totalRecolors += 2;
+                            this.rotateLeft(grandparent);
+                        }
+                    }
+                }
+                this.root.color = 'black';
+            }
+
+            rotateLeft(node) {
+                const rightChild = node.right;
+                node.right = rightChild.left;
+                
+                if (rightChild.left) {
+                    rightChild.left.parent = node;
+                }
+                
+                rightChild.parent = node.parent;
+                
+                if (!node.parent) {
+                    this.root = rightChild;
+                } else if (node === node.parent.left) {
+                    node.parent.left = rightChild;
+                } else {
+                    node.parent.right = rightChild;
+                }
+                
+                rightChild.left = node;
+                node.parent = rightChild;
+                
+                this.totalRotations++;
+                this.addLog(`[BU] Left rotation on ${node.value}`, 'rotation');
+            }
+
+            rotateRight(node) {
+                const leftChild = node.left;
+                node.left = leftChild.right;
+                
+                if (leftChild.right) {
+                    leftChild.right.parent = node;
+                }
+                
+                leftChild.parent = node.parent;
+                
+                if (!node.parent) {
+                    this.root = leftChild;
+                } else if (node === node.parent.right) {
+                    node.parent.right = leftChild;
+                } else {
+                    node.parent.left = leftChild;
+                }
+                
+                leftChild.right = node;
+                node.parent = leftChild;
+                
+                this.totalRotations++;
+                this.addLog(`[BU] Right rotation on ${node.value}`, 'rotation');
+            }
+
+            getHeight(node = this.root) {
+                if (!node) return 0;
+                return 1 + Math.max(this.getHeight(node.left), this.getHeight(node.right));
+            }
+
+            clear() {
+                this.root = null;
+                this.nodeCount = 0;
+                this.operationLog = [];
+                this.totalRotations = 0;
+                this.totalRecolors = 0;
+                this.addLog('[BU] Tree cleared', 'insertion');
+            }
+
+            addLog(message, type) {
+                this.operationLog.push({ message, type, timestamp: Date.now() });
+            }
+        }
+
+        // Top-Down Red-Black Tree
+        class TopDownRBTree {
+            constructor() {
+                this.root = null;
+                this.animationSpeed = 5;
+                this.nodeCount = 0;
+                this.operationLog = [];
+                this.totalRotations = 0;
+                this.totalRecolors = 0;
+            }
+
+            insert(value) {
+                if (!this.root) {
+                    this.root = new Node(value);
+                    this.root.color = 'black';
+                    this.nodeCount++;
+                    this.addLog(`[TD] Inserted ${value} as root (black)`, 'insertion');
+                    return;
+                }
+
+                // Top-down insertion with preemptive splitting
+                this.root = this.insertHelper(this.root, null, value);
+                this.root.color = 'black';
+            }
+
+            insertHelper(node, parent, value) {
+                if (!node) {
+                    const newNode = new Node(value);
+                    newNode.parent = parent;
+                    this.nodeCount++;
+                    this.addLog(`[TD] Inserted ${value} (red)`, 'insertion');
+                    return newNode;
+                }
+
+                // Split 4-nodes on the way down (both children are red)
+                if (this.isRed(node.left) && this.isRed(node.right)) {
+                    this.addLog(`[TD] Splitting 4-node at ${node.value}`, 'check');
+                    this.flipColors(node);
+                    
+                    // Fix any violations created by color flip
+                    if (parent && this.isRed(node) && this.isRed(parent)) {
+                        // Need to fix double red
+                        return this.fixDoubleRed(parent.parent, parent, node);
+                    }
+                }
+
+                if (value < node.value) {
+                    node.left = this.insertHelper(node.left, node, value);
+                    
+                    // Check for violations after insertion
+                    if (this.isRed(node.left) && this.isRed(node.left.left)) {
+                        node = this.rotateRight(node);
+                    } else if (this.isRed(node.left) && node.left.right && this.isRed(node.left.right)) {
+                        node.left = this.rotateLeft(node.left);
+                        node = this.rotateRight(node);
+                    }
+                } else {
+                    node.right = this.insertHelper(node.right, node, value);
+                    
+                    // Check for violations after insertion
+                    if (this.isRed(node.right) && this.isRed(node.right.right)) {
+                        node = this.rotateLeft(node);
+                    } else if (this.isRed(node.right) && node.right.left && this.isRed(node.right.left)) {
+                        node.right = this.rotateRight(node.right);
+                        node = this.rotateLeft(node);
+                    }
+                }
+
+                return node;
+            }
+
+            fixDoubleRed(grandparent, parent, node) {
+                if (!grandparent) return parent;
+                
+                if (parent === grandparent.left) {
+                    if (node === parent.left) {
+                        grandparent = this.rotateRight(grandparent);
+                    } else {
+                        grandparent.left = this.rotateLeft(parent);
+                        grandparent = this.rotateRight(grandparent);
+                    }
+                } else {
+                    if (node === parent.right) {
+                        grandparent = this.rotateLeft(grandparent);
+                    } else {
+                        grandparent.right = this.rotateRight(parent);
+                        grandparent = this.rotateLeft(grandparent);
+                    }
+                }
+                
+                return grandparent;
+            }
+
+            flipColors(node) {
+                node.color = node.color === 'red' ? 'black' : 'red';
+                if (node.left) node.left.color = node.left.color === 'red' ? 'black' : 'red';
+                if (node.right) node.right.color = node.right.color === 'red' ? 'black' : 'red';
+                this.totalRecolors += 3;
+                this.addLog(`[TD] Flipped colors at ${node.value}`, 'recolor');
+            }
+
+            isRed(node) {
+                return node && node.color === 'red';
+            }
+
+            rotateLeft(node) {
+                const rightChild = node.right;
+                node.right = rightChild.left;
+                
+                if (rightChild.left) {
+                    rightChild.left.parent = node;
+                }
+                
+                rightChild.parent = node.parent;
+                rightChild.left = node;
+                node.parent = rightChild;
+                
+                // Swap colors
+                const tempColor = node.color;
+                node.color = rightChild.color;
+                rightChild.color = tempColor;
+                
+                this.totalRotations++;
+                this.addLog(`[TD] Left rotation on ${node.value}`, 'rotation');
+                
+                return rightChild;
+            }
+
+            rotateRight(node) {
+                const leftChild = node.left;
+                node.left = leftChild.right;
+                
+                if (leftChild.right) {
+                    leftChild.right.parent = node;
+                }
+                
+                leftChild.parent = node.parent;
+                leftChild.right = node;
+                node.parent = leftChild;
+                
+                // Swap colors
+                const tempColor = node.color;
+                node.color = leftChild.color;
+                leftChild.color = tempColor;
+                
+                this.totalRotations++;
+                this.addLog(`[TD] Right rotation on ${node.value}`, 'rotation');
+                
+                return leftChild;
+            }
+
+            getHeight(node = this.root) {
+                if (!node) return 0;
+                return 1 + Math.max(this.getHeight(node.left), this.getHeight(node.right));
+            }
+
+            clear() {
+                this.root = null;
+                this.nodeCount = 0;
+                this.operationLog = [];
+                this.totalRotations = 0;
+                this.totalRecolors = 0;
+                this.addLog('[TD] Tree cleared', 'insertion');
+            }
+
+            addLog(message, type) {
+                this.operationLog.push({ message, type, timestamp: Date.now() });
+            }
+        }
+
+        class TreeVisualizer {
+            constructor(canvasId, tree) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.tree = tree;
+                this.nodeRadius = 20;
+                this.levelHeight = 60;
+                this.animationFrame = null;
+                
+                this.setupCanvas();
+            }
+
+            setupCanvas() {
+                const container = this.canvas.parentElement;
+                this.canvas.width = container.clientWidth;
+                this.canvas.height = container.clientHeight;
+            }
+
+            updatePositions() {
+                if (!this.tree.root) return;
+                
+                const width = this.canvas.width;
+                this.assignPositions(this.tree.root, 0, width, 0, width / 2);
+            }
+
+            assignPositions(node, left, right, level, parentX) {
+                if (!node) return;
+                
+                const x = (left + right) / 2;
+                const y = 40 + level * this.levelHeight;
+                
+                if (!node.x && !node.y) {
+                    node.x = parentX;
+                    node.y = 40;
+                }
+                
+                node.targetX = x;
+                node.targetY = y;
+                
+                const mid = (left + right) / 2;
+                this.assignPositions(node.left, left, mid, level + 1, x);
+                this.assignPositions(node.right, mid, right, level + 1, x);
+            }
+
+            drawNode(node, parentX, parentY) {
+                if (!node) return;
+                
+                // Animate position
+                const speed = this.tree.animationSpeed / 100;
+                node.x += (node.targetX - node.x) * speed;
+                node.y += (node.targetY - node.y) * speed;
+                
+                // Draw edge to parent
+                if (parentX !== null && parentY !== null) {
+                    this.ctx.strokeStyle = '#dee2e6';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(parentX, parentY);
+                    this.ctx.lineTo(node.x, node.y);
+                    this.ctx.stroke();
+                }
+                
+                // Draw children first
+                this.drawNode(node.left, node.x, node.y);
+                this.drawNode(node.right, node.x, node.y);
+                
+                // Draw node circle
+                this.ctx.beginPath();
+                this.ctx.arc(node.x, node.y, this.nodeRadius, 0, Math.PI * 2);
+                
+                // Fill based on color
+                if (node.color === 'red') {
+                    this.ctx.fillStyle = '#dc3545';
+                } else {
+                    this.ctx.fillStyle = '#212529';
+                }
+                this.ctx.fill();
+                
+                // Draw border
+                this.ctx.strokeStyle = '#495057';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+                
+                // Draw value
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = 'bold 14px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(node.value, node.x, node.y);
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                if (this.tree.root) {
+                    this.drawNode(this.tree.root, null, null);
+                } else {
+                    this.ctx.fillStyle = '#6c757d';
+                    this.ctx.font = '16px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('Insert values to build tree', 
+                                     this.canvas.width / 2, this.canvas.height / 2);
+                }
+            }
+
+            animate() {
+                this.draw();
+                this.animationFrame = requestAnimationFrame(() => this.animate());
+            }
+
+            stop() {
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                }
+            }
+        }
+
+        // Main Application Controller
+        class App {
+            constructor() {
+                this.currentMethod = 'bottom-up';
+                this.bottomUpTree = new BottomUpRBTree();
+                this.topDownTree = new TopDownRBTree();
+                
+                this.visualizer1 = new TreeVisualizer('tree1-canvas', this.bottomUpTree);
+                this.visualizer2 = new TreeVisualizer('tree2-canvas', this.topDownTree);
+                
+                this.setupEventListeners();
+                this.updateMethodInfo();
+                this.startAnimation();
+            }
+
+            setupEventListeners() {
+                // Method toggle
+                document.querySelectorAll('input[name="method"]').forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        this.currentMethod = e.target.value;
+                        this.updateMethodInfo();
+                        this.updateVisualization();
+                    });
+                });
+
+                // Insert button
+                document.getElementById('insert-btn').addEventListener('click', () => {
+                    const input = document.getElementById('insert-value');
+                    const value = parseInt(input.value);
+                    
+                    if (value && value >= 1 && value <= 99) {
+                        this.insertValue(value);
+                        input.value = '';
+                    }
+                });
+
+                // Enter key on input
+                document.getElementById('insert-value').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('insert-btn').click();
+                    }
+                });
+
+                // Sequence button
+                document.getElementById('sequence-btn').addEventListener('click', () => {
+                    this.clearTrees();
+                    const sequence = [1, 2, 3, 4, 5, 6, 7];
+                    let index = 0;
+                    
+                    const insertNext = () => {
+                        if (index < sequence.length) {
+                            this.insertValue(sequence[index]);
+                            index++;
+                            setTimeout(insertNext, 500);
+                        }
+                    };
+                    insertNext();
+                });
+
+                // Random button
+                document.getElementById('random-btn').addEventListener('click', () => {
+                    const value = Math.floor(Math.random() * 99) + 1;
+                    this.insertValue(value);
+                });
+
+                // Clear button
+                document.getElementById('clear-btn').addEventListener('click', () => {
+                    this.clearTrees();
+                });
+
+                // Example button
+                document.getElementById('example-btn').addEventListener('click', () => {
+                    this.clearTrees();
+                    const values = [50, 25, 75, 12, 37, 62, 87];
+                    values.forEach(v => this.insertValue(v));
+                });
+
+                // Speed slider
+                document.getElementById('speed-slider').addEventListener('input', (e) => {
+                    const speed = parseInt(e.target.value);
+                    this.bottomUpTree.animationSpeed = speed;
+                    this.topDownTree.animationSpeed = speed;
+                });
+            }
+
+            insertValue(value) {
+                if (this.currentMethod === 'bottom-up') {
+                    this.bottomUpTree.insert(value);
+                    this.visualizer1.updatePositions();
+                } else if (this.currentMethod === 'top-down') {
+                    this.topDownTree.insert(value);
+                    this.visualizer1.tree = this.topDownTree;
+                    this.visualizer1.updatePositions();
+                } else {
+                    // Comparison mode
+                    this.bottomUpTree.insert(value);
+                    this.topDownTree.insert(value);
+                    this.visualizer1.updatePositions();
+                    this.visualizer2.updatePositions();
+                }
+                
+                this.updateStats();
+                this.updateLog();
+            }
+
+            clearTrees() {
+                this.bottomUpTree.clear();
+                this.topDownTree.clear();
+                this.updateStats();
+                this.updateLog();
+            }
+
+            updateMethodInfo() {
+                const infoDiv = document.getElementById('method-info');
+                const tree1Title = document.getElementById('tree1-title');
+                const tree2Container = document.getElementById('tree2-container');
+                const comparisonIndicator = document.getElementById('comparison-indicator');
+                
+                if (this.currentMethod === 'bottom-up') {
+                    infoDiv.innerHTML = `
+                        <h4>Bottom-Up Insertion (Standard)</h4>
+                        <p>Inserts node first, then fixes violations by working up the tree. May require multiple rotations but has simpler logic.</p>
+                    `;
+                    tree1Title.textContent = 'Bottom-Up Insertion';
+                    this.visualizer1.tree = this.bottomUpTree;
+                    tree2Container.style.display = 'none';
+                    comparisonIndicator.style.display = 'none';
+                } else if (this.currentMethod === 'top-down') {
+                    infoDiv.innerHTML = `
+                        <h4>Top-Down Insertion (2-3-4 Tree)</h4>
+                        <p>Splits 4-nodes on the way down, preventing violations before they occur. Guarantees at most 2 rotations per insertion.</p>
+                    `;
+                    tree1Title.textContent = 'Top-Down Insertion';
+                    this.visualizer1.tree = this.topDownTree;
+                    tree2Container.style.display = 'none';
+                    comparisonIndicator.style.display = 'none';
+                } else {
+                    infoDiv.innerHTML = `
+                        <h4>Comparison Mode</h4>
+                        <p>Watch how both methods handle the same insertions. Bottom-Up may do more fix-ups, while Top-Down prevents issues proactively.</p>
+                    `;
+                    tree1Title.textContent = 'Bottom-Up Insertion';
+                    this.visualizer1.tree = this.bottomUpTree;
+                    tree2Container.style.display = 'block';
+                    comparisonIndicator.style.display = 'block';
+                }
+                
+                this.visualizer1.updatePositions();
+                this.visualizer2.updatePositions();
+            }
+
+            updateVisualization() {
+                this.visualizer1.updatePositions();
+                if (this.currentMethod === 'comparison') {
+                    this.visualizer2.updatePositions();
+                }
+            }
+
+            updateStats() {
+                const activeTree = this.currentMethod === 'top-down' ? this.topDownTree : this.bottomUpTree;
+                
+                document.getElementById('node-count').textContent = activeTree.nodeCount;
+                document.getElementById('tree-height').textContent = activeTree.getHeight();
+                document.getElementById('rotations').textContent = activeTree.totalRotations;
+                document.getElementById('recolors').textContent = activeTree.totalRecolors;
+                
+                if (this.currentMethod === 'comparison') {
+                    // Show combined stats
+                    document.getElementById('rotations').textContent = 
+                        `BU: ${this.bottomUpTree.totalRotations} | TD: ${this.topDownTree.totalRotations}`;
+                    document.getElementById('recolors').textContent = 
+                        `BU: ${this.bottomUpTree.totalRecolors} | TD: ${this.topDownTree.totalRecolors}`;
+                }
+            }
+
+            updateLog() {
+                const logContainer = document.getElementById('operation-log');
+                logContainer.innerHTML = '';
+                
+                let logs = [];
+                if (this.currentMethod === 'bottom-up') {
+                    logs = this.bottomUpTree.operationLog;
+                } else if (this.currentMethod === 'top-down') {
+                    logs = this.topDownTree.operationLog;
+                } else {
+                    // Merge logs from both trees
+                    logs = [...this.bottomUpTree.operationLog, ...this.topDownTree.operationLog]
+                        .sort((a, b) => b.timestamp - a.timestamp);
+                }
+                
+                const recentLogs = logs.slice(0, 10);
+                recentLogs.forEach(log => {
+                    const entry = document.createElement('div');
+                    entry.className = `log-entry ${log.type}`;
+                    entry.textContent = log.message;
+                    logContainer.appendChild(entry);
+                });
+            }
+
+            startAnimation() {
+                this.visualizer1.animate();
+                this.visualizer2.animate();
+            }
+        }
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new App();
+            
+            // Load example after a short delay
+            setTimeout(() => {
+                document.getElementById('example-btn').click();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
