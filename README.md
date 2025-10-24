@@ -34,3 +34,10 @@ If you get an error like ModuleNotFoundError: No module named 'tkinter', reinsta
 ✅ “tcl/tk and IDLE” during installation.
 
 You can also repair the installation by re-running the Python installer and selecting Modify → tcl/tk and IDLE.
+
+## Python virtual environment setup
+1. `python3 -m venv .venv`
+2. `source .venv/bin/activate`
+
+## Running
+1. `python redblack.py`
