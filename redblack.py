@@ -187,7 +187,7 @@ class BottomUpRBTree:
             self._emit("after recolor root black")
 
 # ============================================================
-# Top-down (LLRB / Sedgewick)
+# Top‑down (LLRB / Sedgewick)
 # ============================================================
 
 @dataclass(eq=False)
@@ -212,13 +212,8 @@ class TopDownLLRB:
         self.steps.append(msg)
         if self.frame_cb:
             keys = {n.key for n in (highlight_nodes or []) if n is not None}
-            # IMPORTANT: we always snapshot the current self.root clone,
-            # which is guaranteed to be a fully connected tree at emit-time.
-            self.frame_cb(msg, clone_ll(self.root), keys,
-                          ghost_key=self._ghost_key,
-                          ghost_path=list(self._ghost_path))
+            self.frame_cb(msg, clone_ll(self.root), keys, ghost_key=self._ghost_key, ghost_path=list(self._ghost_path))
 
-    # Pure structural transforms: NO emits here.
     def _rotate_left(self, h: LLNode) -> LLNode:
         assert h.right and is_red(h.right)
         x = h.right
@@ -237,65 +232,56 @@ class TopDownLLRB:
         h.red = True
         return x
 
-    # Pure color flip: NO emits here.
     def _color_flip(self, h: LLNode):
+        # pure mutation, no emits here to avoid mid-stack snapshots
         h.red = not h.red
-        if h.left:  h.left.red  = not h.left.red
-        if h.right: h.right.red = not h.right.red
+        if h.left:
+            h.left.red = not h.left.red
+        if h.right:
+            h.right.red = not h.right.red
 
     def insert(self, key: int):
-        # Show a ghost node for the entire descent.
+        # For teaching: set up a ghost key visible during the whole descent.
         self._ghost_key = key
         self._ghost_path = []
         self._emit(f"begin insert {key} (ghost descending)")
         self.root = self._insert(self.root, key)
-
-        # Final root recolor if needed (snapshot is safe here).
         if self.root and self.root.red:
             self._emit("recolor root black", [self.root])
             self.root.red = False
-
-        # Attach completes: clear ghost (announce after everything is attached).
+            self._emit("after recolor root black")
+        # Attach completes: clear ghost
         self._emit(f"attach new node {key}")
         self._ghost_key = None
         self._ghost_path = []
 
     def _insert(self, h: Optional[LLNode], key: int) -> LLNode:
         if h is None:
-            # Final attach happens here.
+            # Final step of top‑down: actual attach happens here
             n = LLNode(key=key, red=True)
-            # Announce the attach (safe: no parent reattachment needed for a new leaf).
+            # show a frame just before and just after attach
             self._emit(f"attach at leaf {key}")
             return n
-
-        # Descent: announce visiting this node; record path for ghost visuals.
+        # Record the descent path (for dashed path hints)
         self._ghost_path.append(h.key)
         self._emit(f"descend through {h.key}")
-
-        # Recurse
         if key < h.key:
             h.left = self._insert(h.left, key)
         elif key > h.key:
             h.right = self._insert(h.right, key)
         else:
-            # duplicate: do nothing
-            return h
-
-        # Fix-ups (announce PRE-op only; do NOT emit any post-op frames here)
+            # duplicate ignored
+            pass
+        # Fix-ups in LLRB (top‑down feel): emit a frame for each op
         if is_red(h.right) and not is_red(h.left):
             self._emit(f"fix: right-lean → rotate-left at {h.key}", [h, h.right])
             h = self._rotate_left(h)
-
         if is_red(h.left) and is_red(h.left.left):
             self._emit(f"fix: two reds on left → rotate-right at {h.key}", [h, h.left])
             h = self._rotate_right(h)
-
         if is_red(h.left) and is_red(h.right):
             self._emit(f"split 4-node at {h.key} → color-flip", [h, h.left, h.right])
             self._color_flip(h)
-
-        # Return h to parent; parent will reattach, and only subsequent emits
-        # (from higher frames) will snapshot the fully attached tree.
         return h
 
 # ============================================================
