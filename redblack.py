@@ -187,7 +187,7 @@ class BottomUpRBTree:
             self._emit("after recolor root black")
 
 # ============================================================
-# Top‑down (LLRB / Sedgewick)
+# Top-down (LLRB / Sedgewick)
 # ============================================================
 
 @dataclass(eq=False)
@@ -212,80 +212,90 @@ class TopDownLLRB:
         self.steps.append(msg)
         if self.frame_cb:
             keys = {n.key for n in (highlight_nodes or []) if n is not None}
-            self.frame_cb(msg, clone_ll(self.root), keys, ghost_key=self._ghost_key, ghost_path=list(self._ghost_path))
+            # IMPORTANT: we always snapshot the current self.root clone,
+            # which is guaranteed to be a fully connected tree at emit-time.
+            self.frame_cb(msg, clone_ll(self.root), keys,
+                          ghost_key=self._ghost_key,
+                          ghost_path=list(self._ghost_path))
 
+    # Pure structural transforms: NO emits here.
     def _rotate_left(self, h: LLNode) -> LLNode:
         assert h.right and is_red(h.right)
-        self._emit(f"rotate-left at {h.key}", [h, h.right])
         x = h.right
         h.right = x.left
         x.left = h
         x.red = h.red
         h.red = True
-        self._emit(f"after rotate-left at {h.key}")
         return x
 
     def _rotate_right(self, h: LLNode) -> LLNode:
         assert h.left and is_red(h.left)
-        self._emit(f"rotate-right at {h.key}", [h, h.left])
         x = h.left
         h.left = x.right
         x.right = h
         x.red = h.red
         h.red = True
-        self._emit(f"after rotate-right at {h.key}")
         return x
 
+    # Pure color flip: NO emits here.
     def _color_flip(self, h: LLNode):
-        nodes = [h] + ([h.left] if h.left else []) + ([h.right] if h.right else [])
-        self._emit(f"color-flip at {h.key}", nodes)
         h.red = not h.red
-        if h.left: h.left.red = not h.left.red
+        if h.left:  h.left.red  = not h.left.red
         if h.right: h.right.red = not h.right.red
-        self._emit(f"after color-flip at {h.key}")
 
     def insert(self, key: int):
-        # For teaching: set up a ghost key visible during the whole descent.
+        # Show a ghost node for the entire descent.
         self._ghost_key = key
         self._ghost_path = []
         self._emit(f"begin insert {key} (ghost descending)")
         self.root = self._insert(self.root, key)
+
+        # Final root recolor if needed (snapshot is safe here).
         if self.root and self.root.red:
             self._emit("recolor root black", [self.root])
             self.root.red = False
-            self._emit("after recolor root black")
-        # Attach completes: clear ghost
+
+        # Attach completes: clear ghost (announce after everything is attached).
         self._emit(f"attach new node {key}")
         self._ghost_key = None
         self._ghost_path = []
 
     def _insert(self, h: Optional[LLNode], key: int) -> LLNode:
         if h is None:
-            # Final step of top‑down: actual attach happens here
+            # Final attach happens here.
             n = LLNode(key=key, red=True)
-            # show a frame just before and just after attach
+            # Announce the attach (safe: no parent reattachment needed for a new leaf).
             self._emit(f"attach at leaf {key}")
             return n
-        # Record the descent path (for dashed path hints)
+
+        # Descent: announce visiting this node; record path for ghost visuals.
         self._ghost_path.append(h.key)
         self._emit(f"descend through {h.key}")
+
+        # Recurse
         if key < h.key:
             h.left = self._insert(h.left, key)
         elif key > h.key:
             h.right = self._insert(h.right, key)
         else:
-            # duplicate ignored
-            pass
-        # Fix-ups in LLRB (top‑down feel): emit a frame for each op
+            # duplicate: do nothing
+            return h
+
+        # Fix-ups (announce PRE-op only; do NOT emit any post-op frames here)
         if is_red(h.right) and not is_red(h.left):
             self._emit(f"fix: right-lean → rotate-left at {h.key}", [h, h.right])
             h = self._rotate_left(h)
+
         if is_red(h.left) and is_red(h.left.left):
             self._emit(f"fix: two reds on left → rotate-right at {h.key}", [h, h.left])
             h = self._rotate_right(h)
+
         if is_red(h.left) and is_red(h.right):
             self._emit(f"split 4-node at {h.key} → color-flip", [h, h.left, h.right])
             self._color_flip(h)
+
+        # Return h to parent; parent will reattach, and only subsequent emits
+        # (from higher frames) will snapshot the fully attached tree.
         return h
 
 # ============================================================
@@ -299,6 +309,7 @@ class Frame:
     highlight_keys: Set[int]
     ghost_key: Optional[int] = None
     ghost_path: Optional[List[int]] = None
+    role_map: Dict[int, str] = None  # key -> role ('parent','uncle','grandparent')
 
 class VisualRBApp(tk.Tk):
     def __init__(self, init_mode: str = "bottomup", init_sequence: str = "7 3 18 10 22 8 11 26", init_speed: int = 900):
@@ -535,9 +546,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    """
-   Make nul black leaf nodes 
-   Does not seem to work correctly switching from bottom up to top down
-    
-    """
