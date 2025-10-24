@@ -206,14 +206,9 @@ class TopDownLLRB:
         self.steps: List[str] = []
         self.frame_cb = frame_cb
         self._ghost_key: Optional[int] = None
-        self._ghost_path: List[int] = []  # keys along descent path for dashed hint
+        self._ghost_path: List[int] = []  # mutable path during descent ONLY
 
-    def _emit(self, msg: str, highlight_nodes: List[LLNode] = None):
-        self.steps.append(msg)
-        if self.frame_cb:
-            keys = {n.key for n in (highlight_nodes or []) if n is not None}
-            self.frame_cb(msg, clone_ll(self.root), keys, ghost_key=self._ghost_key, ghost_path=list(self._ghost_path))
-
+    # No mid-mutation emits. Keep helpers pure.
     def _rotate_left(self, h: LLNode) -> LLNode:
         assert h.right and is_red(h.right)
         x = h.right
@@ -233,56 +228,102 @@ class TopDownLLRB:
         return x
 
     def _color_flip(self, h: LLNode):
-        # pure mutation, no emits here to avoid mid-stack snapshots
         h.red = not h.red
-        if h.left:
-            h.left.red = not h.left.red
-        if h.right:
-            h.right.red = not h.right.red
+        if h.left:  h.left.red  = not h.left.red
+        if h.right: h.right.red = not h.right.red
 
     def insert(self, key: int):
-        # For teaching: set up a ghost key visible during the whole descent.
+        # Start top-down insert with a ghost for the entire descent
         self._ghost_key = key
         self._ghost_path = []
-        self._emit(f"begin insert {key} (ghost descending)")
-        self.root = self._insert(self.root, key)
+
+        # Collect deferred events as tuples:
+        # (message: str, highlight_keys: List[int], ghost_path_snapshot: List[int])
+        deferred: List[Tuple[str, List[int], List[int]]] = []
+        deferred.append((f"begin insert {key} (ghost descending)", [], []))
+
+        new_root, evts = self._insert(self.root, key, path_so_far=[])
+        self.root = new_root
+        deferred.extend(evts)
+
+        # Root fix (if needed)
         if self.root and self.root.red:
-            self._emit("recolor root black", [self.root])
+            # No need to snapshot path here; it’s a root event
+            deferred.append(("recolor root black", [self.root.key], []))
             self.root.red = False
-            self._emit("after recolor root black")
-        # Attach completes: clear ghost
-        self._emit(f"attach new node {key}")
+
+        # ---- Flush frames only now (tree is fully attached) ----
+        # Important: we DO NOT call _emit (which would read live _ghost_path).
+        # We call frame_cb directly with the final root clone and per-event path snapshots.
+        for msg, keys, path_snapshot in deferred:
+            if self.frame_cb:
+                nodes = [self._find_node_by_key(self.root, k) for k in keys if k is not None]
+                self.frame_cb(
+                    msg,
+                    clone_ll(self.root),
+                    set(k.key for k in nodes if k),
+                    ghost_key=self._ghost_key,
+                    ghost_path=list(path_snapshot)  # the saved snapshot FOR THIS EVENT
+                )
+
+        # Final announcement + clear ghost
+        if self.frame_cb:
+            self.frame_cb(f"attach new node {key}", clone_ll(self.root), set(), ghost_key=None, ghost_path=[])
         self._ghost_key = None
         self._ghost_path = []
 
-    def _insert(self, h: Optional[LLNode], key: int) -> LLNode:
+    def _insert(self, h: Optional[LLNode], key: int, path_so_far: List[int]) -> Tuple[LLNode, List[Tuple[str, List[int], List[int]]]]:
+        events: List[Tuple[str, List[int], List[int]]] = []
+
         if h is None:
-            # Final step of top‑down: actual attach happens here
             n = LLNode(key=key, red=True)
-            # show a frame just before and just after attach
-            self._emit(f"attach at leaf {key}")
-            return n
-        # Record the descent path (for dashed path hints)
-        self._ghost_path.append(h.key)
-        self._emit(f"descend through {h.key}")
+            # Attach at leaf: show the full descent path (including the would-be parent)
+            events.append((f"attach at leaf {key}", [key], list(path_so_far)))
+            return n, events
+
+        # On entry, snapshot visiting this node (ghost path = path_so_far + [h.key])
+        here_path = path_so_far + [h.key]
+        events.append((f"descend through {h.key}", [h.key], list(here_path)))
+
+        # Recurse
         if key < h.key:
-            h.left = self._insert(h.left, key)
+            child, ev = self._insert(h.left, key, path_so_far=here_path)
+            h.left = child
+            events.extend(ev)
         elif key > h.key:
-            h.right = self._insert(h.right, key)
+            child, ev = self._insert(h.right, key, path_so_far=here_path)
+            h.right = child
+            events.extend(ev)
         else:
-            # duplicate ignored
-            pass
-        # Fix-ups in LLRB (top‑down feel): emit a frame for each op
+            # duplicate
+            return h, events
+
+        # Fix-ups (PRE-op announcement with path snapshot for THIS moment)
         if is_red(h.right) and not is_red(h.left):
-            self._emit(f"fix: right-lean → rotate-left at {h.key}", [h, h.right])
+            events.append((f"fix: right-lean → rotate-left at {h.key}", [h.key, h.right.key], list(here_path)))
             h = self._rotate_left(h)
+
         if is_red(h.left) and is_red(h.left.left):
-            self._emit(f"fix: two reds on left → rotate-right at {h.key}", [h, h.left])
+            events.append((f"fix: two reds on left → rotate-right at {h.key}", [h.key, h.left.key], list(here_path)))
             h = self._rotate_right(h)
+
         if is_red(h.left) and is_red(h.right):
-            self._emit(f"split 4-node at {h.key} → color-flip", [h, h.left, h.right])
+            events.append((f"split 4-node at {h.key} → color-flip", [h.key, h.left.key, h.right.key], list(here_path)))
             self._color_flip(h)
-        return h
+
+        return h, events
+
+    # Utility: find node by key in current root
+    def _find_node_by_key(self, root: Optional[LLNode], key: int) -> Optional[LLNode]:
+        n = root
+        while n:
+            if key < n.key:
+                n = n.left
+            elif key > n.key:
+                n = n.right
+            else:
+                return n
+        return None
 
 # ============================================================
 # GUI Application (Tk + Matplotlib)
