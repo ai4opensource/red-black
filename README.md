@@ -1,5 +1,5 @@
 # red-black
-Demonstration of red black trees with bottom up and top down insertion 
+Demonstration of red black trees with bottom up and top down insertion. At present the Python version is substantially farther along than the html version. I do not consider the HTML version complete enough, yet. 
 
 ## Operating System Python Setup
 You need to have Python-tk installed, which is not the default. 
